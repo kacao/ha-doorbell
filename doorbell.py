@@ -1,13 +1,15 @@
 import logging
 import voluptuous as vol
+import asyncio
 import homeassistant.helpers.config_validation as cv
+from homeassistant.loader import bind_hass
 from homeassistant.util.async_ import run_coroutine_threadsafe
 from homeassistant.helpers.entity import ToggleEntity
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.util.async_ import run_coroutine_threadsafe
 from homeassistant.const import (
     ATTR_ENTITY_ID, CONF_ICON, CONF_NAME, SERVICE_TURN_OFF, SERVICE_TURN_ON,
-    SERVICE_TOGGLE, STATE_ON)
+    SERVICE_TOGGLE, STATE_ON, STATE_OFF)
 import vlc
 
 REQUIREMENTS = ['python-vlc']
@@ -15,6 +17,7 @@ REQUIREMENTS = ['python-vlc']
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = 'doorbell'
+CONF_MEDIA = 'media'
 
 ENTITY_ID_FORMAT = DOMAIN + '.{}'
 
@@ -74,7 +77,7 @@ async def async_setup(hass, config):
     await component.async_add_entities(entities)
     return True
 
-class DoorBell(EntityComponent):
+class DoorBell(ToggleEntity):
 
     def __init__(self, object_id, name, filepath, icon):
         self.entity_id = ENTITY_ID_FORMAT.format(object_id)
@@ -83,6 +86,9 @@ class DoorBell(EntityComponent):
         self._state = STATE_OFF
         self._icon = icon
         self._length = None
+
+        # if _should_stop == True, stop playing
+        self._should_stop = False
         media = vlc_instance.media_new_path(self._filepath)
         self._player = vlc_instance.media_player_new()
         self._player.set_media(media) 
@@ -90,29 +96,45 @@ class DoorBell(EntityComponent):
         events.event_attach(vlc.EventType.MediaPlayerEndReached, self._sound_finished)
         events.event_attach(vlc.EventType.MediaPlayerPlaying, self._sound_playing)
 
+
     # called by vlc when it has reached the end of a media play
     def _sound_finished(self, data):
         # this is called in a separated thread (not managed by us)
-        self._schedule_stop(0)
+        _LOGGER.debug('reached end of play, stopping')
+        self._should_stop = True
 
     # vlc starts playing, get_length() is not available before this
     def _sound_playing(self, data):
         # this is called in a separated thread (not managed by us)
         if self._length == None:
-            self._length = self._vlc.get_length()
+            self._length = self._player.get_length()
+        _LOGGER.debug('start playing %s, length=%s' % (self._filepath, self._length))
 
-    def _schedule_stop(self, length):
-        return run_coroutine_threadsafe(
-                self._async_schedule_stop(self, length).result()
+    # check for finished plays and stop
+    async def _background_check(self):
+        while True:
+            _LOGGER.debug('ticking')
+            await asyncio.sleep(.5)
+            if self._should_stop:
+                self._should_stop = False
+                await self.async_turn_off()
 
-    def async _async_schedule_stop(self, seconds):
-        await asyncio.sleep(seconds)
-        await self.async_turn_off()
+    # bugged, using this will cause hass to hang
+    # def _schedule_stop(self, length):
+    #    return run_coroutine_threadsafe(
+    #            self._async_schedule_stop(length), self.hass.loop).result()
+
+    #async def _async_schedule_stop(self, seconds):
+    #    await asyncio.sleep(seconds)
+    #    await self.async_turn_off()
+    #    _LOGGER.debug('stopped playing %s' % self._filepath)
 
     async def async_added_to_hass(self):
         # If not None, we got an initial value.
         await super().async_added_to_hass()
         self._state = STATE_OFF
+        asyncio.ensure_future(self._background_check(), loop=self.hass.loop)
+        #self.hass.async_create_task(self._background_check())
 
     async def async_turn_on(self, **kwargs):
         if self._state == STATE_ON:
@@ -122,7 +144,7 @@ class DoorBell(EntityComponent):
         self._player.play()
 
     async def async_turn_off(self, **kwargs):
-        if self._state = STATE_OFF:
+        if self._state == STATE_OFF:
             return
         self._state = STATE_OFF
         self._player.stop()
@@ -142,7 +164,7 @@ class DoorBell(EntityComponent):
 
     @property
     def is_on(self):
-        return self._state
+        return self._state == STATE_ON
 
     @property
     def length(self):
