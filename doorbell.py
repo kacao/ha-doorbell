@@ -113,7 +113,6 @@ class DoorBell(ToggleEntity):
     # check for finished plays and stop
     async def _background_check(self):
         while True:
-            _LOGGER.debug('ticking')
             await asyncio.sleep(.5)
             if self._should_stop:
                 self._should_stop = False
