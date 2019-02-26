@@ -35,7 +35,7 @@ CONFIG_SCHEMA = vol.Schema({
     )
 }, extra=vol.ALLOW_EXTRA)
 
-vlc_instance = vlc.Instance('--aout=waveout -waveout-audio-device=bluealsa')
+vlc_instance = vlc.Instance()
 
 @bind_hass
 def is_on(hass, entity_id):
