@@ -114,7 +114,7 @@ class DoorBell(ToggleEntity):
     # called by vlc when it has reached the end of a media play
     def _sound_finished(self, data):
         # this is called in a separated thread (not managed by us)
-        _LOGGER.debug('reached end of play, stopping')
+        _LOGGER.info('reached end of play, stopping')
         self._should_stop = True
 
     # vlc starts playing, get_length() is not available before this
@@ -122,12 +122,13 @@ class DoorBell(ToggleEntity):
         # this is called in a separated thread (not managed by us)
         if self._length == None:
             self._length = self._player.get_length()
-        _LOGGER.debug('start playing %s, length=%s' % (self._filepath, self._length))
+        _LOGGER.info('start playing %s, length=%s' % (self._filepath, self._length))
 
     # check for finished plays and stop
     async def _background_check(self):
         while True:
             await asyncio.sleep(.5)
+            _LOGGER.info('tickling!')
             if self._should_stop:
                 self._should_stop = False
                 await self.async_turn_off()
