@@ -162,8 +162,10 @@ class DoorBell(ToggleEntity):
     async def async_turn_off(self, **kwargs):
         if self._state == STATE_OFF:
             return
+        _LOGGER.info('at async_turn_off')
         self._state = STATE_OFF
         self._player.stop()
+        _LOGGER.info('after stop()')
         await self.async_update_ha_state()
 
     @property
