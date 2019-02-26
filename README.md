@@ -2,7 +2,7 @@
 A doorbell component for Home Assistant
 
 ### Installation
-Copy `doorbell.py` to `CONFIG/custom_components` folder
+Clone this git into your `CONFIG/custom_components` folder
 
 ### Use
 add to configuration.yaml:
