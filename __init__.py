@@ -96,7 +96,7 @@ class DoorBell(ToggleEntity):
         media = vlc_instance.media_new_path(self._filepath)
         self._player = vlc_instance.media_player_new()
         self._player.set_media(media) 
-        _LOGGER.info('Setting volume to %s for %s' % (self._volume, self._media)) 
+        _LOGGER.info('Setting volume to %s for %s' % (self._volume, self._filepath)) 
         v = self._player.audio_set_volume(self._volume)
         if v == -1:
             _LOGGER.error('could not set volume %s' % self._volume)
