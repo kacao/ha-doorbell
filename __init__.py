@@ -104,6 +104,12 @@ class DoorBell(ToggleEntity):
         events.event_attach(vlc.EventType.MediaPlayerEndReached, self._sound_finished)
         events.event_attach(vlc.EventType.MediaPlayerPlaying, self._sound_playing)
 
+        self._attributes = {
+            'name': self._name,
+            'media': self._media,
+            'volume': self._volume
+        }
+
 
     # called by vlc when it has reached the end of a media play
     def _sound_finished(self, data):
@@ -156,6 +162,11 @@ class DoorBell(ToggleEntity):
         self._state = STATE_OFF
         self._player.stop()
         await self.async_update_ha_state()
+
+    @property
+    def device_state_attributes(self):
+        """Return the state attributes."""
+        return self._attributes
 
     @property
     def should_poll(self):
