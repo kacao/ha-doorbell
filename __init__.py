@@ -128,8 +128,8 @@ class DoorBell(ToggleEntity):
     async def _background_check(self):
         while True:
             await asyncio.sleep(.5)
-            _LOGGER.info('tickling!')
             if self._should_stop:
+                _LOGGER.info('STOPPING %s' % self._name)
                 self._should_stop = False
                 await self.async_turn_off()
 
