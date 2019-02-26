@@ -157,6 +157,7 @@ class DoorBell(ToggleEntity):
             return
         self._state = STATE_ON
         await self.async_update_ha_state()
+        self._player.set_time(0)
         self._player.play()
 
     async def async_turn_off(self, **kwargs):
