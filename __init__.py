@@ -93,10 +93,19 @@ class DoorBell(ToggleEntity):
 
         # if _should_stop == True, stop playing
         self._should_stop = False
+        self._attributes = {
+            'name': self._name,
+            'media': self._filepath,
+            'volume': self._volume
+        }
+
+    # Somehow a player can only play once, the next time play() is called,
+    # there is no sound
+    # work around: create new player every time we play
+    def create_player():
         media = vlc_instance.media_new_path(self._filepath)
         self._player = vlc_instance.media_player_new()
         self._player.set_media(media) 
-        _LOGGER.info('Setting volume to %s for %s' % (self._volume, self._filepath)) 
         v = self._player.audio_set_volume(self._volume)
         if v == -1:
             _LOGGER.error('could not set volume %s' % self._volume)
@@ -104,17 +113,10 @@ class DoorBell(ToggleEntity):
         events.event_attach(vlc.EventType.MediaPlayerEndReached, self._sound_finished)
         events.event_attach(vlc.EventType.MediaPlayerPlaying, self._sound_playing)
 
-        self._attributes = {
-            'name': self._name,
-            'media': self._filepath,
-            'volume': self._volume
-        }
-
-
     # called by vlc when it has reached the end of a media play
     def _sound_finished(self, data):
         # this is called in a separated thread (not managed by us)
-        _LOGGER.info('reached end of play, stopping')
+        _LOGGER.debug('reached end of play, stopping')
         self._should_stop = True
 
     # vlc starts playing, get_length() is not available before this
@@ -122,7 +124,7 @@ class DoorBell(ToggleEntity):
         # this is called in a separated thread (not managed by us)
         if self._length == None:
             self._length = self._player.get_length()
-        _LOGGER.info('start playing %s, length=%s' % (self._filepath, self._length))
+        _LOGGER.debug('start playing %s, length=%s' % (self._filepath, self._length))
 
     # check for finished plays and stop
     async def _background_check(self):
@@ -157,7 +159,7 @@ class DoorBell(ToggleEntity):
             return
         self._state = STATE_ON
         await self.async_update_ha_state()
-        self._player.set_time(0)
+        self.create_player()
         self._player.play()
 
     async def async_turn_off(self, **kwargs):
@@ -166,6 +168,8 @@ class DoorBell(ToggleEntity):
         _LOGGER.info('at async_turn_off')
         self._state = STATE_OFF
         self._player.stop()
+        self._player.release()
+        self._player = None
         _LOGGER.info('after stop()')
         await self.async_update_ha_state()
 
