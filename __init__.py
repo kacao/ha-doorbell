@@ -102,7 +102,7 @@ class DoorBell(ToggleEntity):
     # Somehow a player can only play once, the next time play() is called,
     # there is no sound
     # work around: create new player every time we play
-    def create_player():
+    def create_player(self):
         media = vlc_instance.media_new_path(self._filepath)
         self._player = vlc_instance.media_player_new()
         self._player.set_media(media) 
