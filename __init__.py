@@ -18,6 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = 'doorbell'
 CONF_MEDIA = 'media'
+CONF_VOLUME = 'volume'
 
 ENTITY_ID_FORMAT = DOMAIN + '.{}'
 
@@ -30,6 +31,7 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Any({
             vol.Optional(CONF_NAME): cv.string,
             vol.Optional(CONF_MEDIA): cv.string,
+            vol.Optional(CONF_VOLUME, default=100): vol.All(vol.Coerce(int), vol.Range(min=0,max=100)),
             vol.Optional(CONF_ICON): cv.icon,
         }, None)
     )
@@ -52,9 +54,10 @@ async def async_setup(hass, config):
 
         name = cfg.get(CONF_NAME)
         media = cfg.get(CONF_MEDIA)
+        volume = cfg.get(CONF_VOLUME)
         icon = cfg.get(CONF_ICON)
 
-        entities.append(DoorBell(object_id, name, media, icon))
+        entities.append(DoorBell(object_id, name, media, volume, icon))
 
     if not entities:
         return False
@@ -79,11 +82,12 @@ async def async_setup(hass, config):
 
 class DoorBell(ToggleEntity):
 
-    def __init__(self, object_id, name, filepath, icon):
+    def __init__(self, object_id, name, filepath, volume,  icon):
         self.entity_id = ENTITY_ID_FORMAT.format(object_id)
         self._name = name
         self._filepath = filepath
         self._state = STATE_OFF
+        self._volume = volume
         self._icon = icon
         self._length = None
 
@@ -92,6 +96,9 @@ class DoorBell(ToggleEntity):
         media = vlc_instance.media_new_path(self._filepath)
         self._player = vlc_instance.media_player_new()
         self._player.set_media(media) 
+        v = self._player.audio_set_volume(self._volume)
+        if v == -1:
+            _LOGGER.error('could not set volume %s' % self._volume)
         events = self._player.event_manager()
         events.event_attach(vlc.EventType.MediaPlayerEndReached, self._sound_finished)
         events.event_attach(vlc.EventType.MediaPlayerPlaying, self._sound_playing)
