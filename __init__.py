@@ -147,7 +147,9 @@ class DoorBell(ToggleEntity):
         # If not None, we got an initial value.
         await super().async_added_to_hass()
         self._state = STATE_OFF
+        _LOGGER.info('setting up background check for %s' % self._name)
         asyncio.ensure_future(self._background_check(), loop=self.hass.loop)
+        _LOGGER.info('background check for %s set' % self._name)
         #self.hass.async_create_task(self._background_check())
 
     async def async_turn_on(self, **kwargs):
