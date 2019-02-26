@@ -56,7 +56,7 @@ async def async_setup(hass, config):
         media = cfg.get(CONF_MEDIA)
         volume = cfg.get(CONF_VOLUME)
         icon = cfg.get(CONF_ICON)
-
+        _LOGGER.info('adding %s with volume %s' % (media, volume))
         entities.append(DoorBell(object_id, name, media, volume, icon))
 
     if not entities:
