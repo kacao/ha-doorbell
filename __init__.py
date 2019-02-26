@@ -106,7 +106,7 @@ class DoorBell(ToggleEntity):
 
         self._attributes = {
             'name': self._name,
-            'media': self._media,
+            'media': self._filepath,
             'volume': self._volume
         }
 
